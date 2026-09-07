@@ -1,0 +1,31 @@
+まずエンドポイントから作成していく。考えるべき項目は７つ
+誰が使うか
+guest
+admin
+staff
+何をしたいか
+一覧取得
+詳細取得
+作成
+更新
+キャンセル
+対象リソースは何か
+hotels
+rooms
+reservations
+HTTPメソッドを当てる
+GET = 取得
+POST = 作成
+PATCH = 一部更新
+DELETE = 削除/取消
+Pathに何を置くか
+リソースの識別子はPath
+絞り込み条件はQuery
+Request/Responseを決める
+何を受け取るか
+何を返すか
+失敗ケースを決める
+400
+404
+409
+403
