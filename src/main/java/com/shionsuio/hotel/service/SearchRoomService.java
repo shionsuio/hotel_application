@@ -23,6 +23,9 @@ public class SearchRoomService {
             CreateSearchRequest request
     ) {
 
+        // TODO: 検索結果の上限・ページングを設け、大量データの全件取得を避ける。
+        // TODO: 検索時点の空室は予約確定を保証しないため、予約Service側でもロック取得後に空室を再確認する。
+
         List<Room> rooms = roomRepository.findAvailableRoom(
                 request.checkInTime(), request.checkOutTime()
         );
