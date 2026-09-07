@@ -2,7 +2,7 @@ package com.shionsuio.hotel.repository;
 
 import com.shionsuio.hotel.domain.Room;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 public interface RoomRepository {
@@ -11,7 +11,7 @@ public interface RoomRepository {
     // TODO: SQLはプレースホルダーで値を渡し、検索条件を文字列連結しない。
     // TODO: 予約件数を増やして実行計画と応答時間を測定し、部屋ID・宿泊期間などのインデックスを検討する。
     List<Room> findAvailableRoom(
-            LocalDateTime checkIn,
-            LocalDateTime checkOut
+            LocalDate checkIn,
+            LocalDate checkOut
     );
 }

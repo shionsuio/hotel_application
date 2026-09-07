@@ -27,7 +27,7 @@ public class SearchRoomService {
         // TODO: 検索時点の空室は予約確定を保証しないため、予約Service側でもロック取得後に空室を再確認する。
 
         List<Room> rooms = roomRepository.findAvailableRoom(
-                request.checkInTime(), request.checkOutTime()
+                request.checkInDate(), request.checkOutDate()
         );
         return rooms.stream()
                 .map(room -> new SearchRoomsResponse(
