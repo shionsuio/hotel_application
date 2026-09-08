@@ -71,4 +71,34 @@ public class JdbcRoomRepositoryTest {
         );
     }
 
+
+    @Test
+    @DisplayName("既存予約のチェックアウト当日はチェックインできる")
+    void allowCheckInOnExistingCheckOutDate() {
+        jdbcTemplate.update("""
+                insert into reservations
+                    (room_id, check_in_date, check_out_date, status)
+                    values (?, ?, ?, ?)
+                """,
+                1L,
+                java.sql.Date.valueOf("2026-10-10"),
+                java.sql.Date.valueOf("2026-10-12"),
+                "CONFIRMED"
+        );
+
+        List<Room> rooms = roomRepository.findAvailableRoom(
+                LocalDate.of(2026, 10,12),
+                LocalDate.of(2026, 10,14)
+
+        );
+
+        assertEquals(
+                List.of(
+                        new Room(1L, "101", 10000),
+                        new Room(2L, "102", 12000),
+                        new Room(3L, "201", 15000)
+                ),
+                rooms
+        );
+    }
 }
