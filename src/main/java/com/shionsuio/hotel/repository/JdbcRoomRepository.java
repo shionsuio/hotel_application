@@ -23,6 +23,7 @@ public class JdbcRoomRepository implements RoomRepository {
             LocalDate checkIn,
             LocalDate checkOut
     ) {
+        //条件に合う行ごとに固定の値１を返す。１は部屋が空いていないことを示す。
         String sql = """
                 select r.id, r.room_number, r.price
                 from rooms r
