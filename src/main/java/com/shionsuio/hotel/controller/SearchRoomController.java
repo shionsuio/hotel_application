@@ -1,6 +1,7 @@
 package com.shionsuio.hotel.controller;
 
 import com.shionsuio.hotel.service.SearchRoomService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,7 +22,7 @@ public class SearchRoomController {
 
     @PostMapping
     public List<SearchRoomsResponse> SearchRoom(
-            @RequestBody CreateSearchRequest request
+            @Valid @RequestBody CreateSearchRequest request
     )
     {
         return searchRoomService.search(request);
