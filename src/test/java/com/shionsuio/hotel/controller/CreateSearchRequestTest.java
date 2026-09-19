@@ -1,6 +1,7 @@
 package com.shionsuio.hotel.controller;
 
 import jakarta.validation.Validator;
+import jakarta.validation.constraints.AssertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,6 +69,41 @@ public class CreateSearchRequestTest {
                 .collect(Collectors.toSet());
 
         assertEquals(Set.of("validPeriod"), invalidFields);
+    }
+
+    @Test
+    @DisplayName("チェックイン日とチェックアウト日が同じならエラーになる")
+    void rejectSameDayStay() {
+        var request = new CreateSearchRequest(
+                LocalDate.of(2026, 10, 10),
+                LocalDate.of(2026, 10, 10)
+        );
+
+    var violations = validator.validate(request);
+
+    var invalidFields = violations.stream()
+            .map(v -> v.getPropertyPath().toString())
+            .collect(Collectors.toSet());
+
+    assertEquals(Set.of("validPeriod"), invalidFields);
+
+    }
+
+    @Test
+    @DisplayName("正しい値なら通過する")
+    void acceptValidPeriod(){
+        var request = new CreateSearchRequest(
+                LocalDate.of(2026, 10, 10),
+                LocalDate.of(2026, 10, 12)
+        );
+
+        var violations = validator.validate(request);
+
+        var invalidFields = violations.stream()
+                .map(v -> v.getPropertyPath().toString())
+                .collect(Collectors.toSet());
+        //空集合だからエラーがないことになる
+        assertEquals(Set.of(), invalidFields);
     }
 
 }
