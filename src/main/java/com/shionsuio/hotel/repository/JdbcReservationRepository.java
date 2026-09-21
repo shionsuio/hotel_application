@@ -26,6 +26,7 @@ public class JdbcReservationRepository implements ReservationRepository {
                 """;
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
+        //予約自体にIDを持たせ、そのIDをそのまま使用したいためkeyHolderを使用
 
         jdbcTemplate.update(connection -> {
             var ps = connection.prepareStatement(sql, new String[]{"id"});
