@@ -2,7 +2,10 @@ package com.shionsuio.hotel.service;
 
 import com.shionsuio.hotel.controller.CreateReservationRequest;
 import com.shionsuio.hotel.exception.RoomNotFoundException;
+import com.shionsuio.hotel.exception.IdempotencyConflictException;
 import com.shionsuio.hotel.exception.ReservationConflictException;
+import com.shionsuio.hotel.domain.IdempotencyRecord;
+import com.shionsuio.hotel.repository.IdempotencyRepository;
 import com.shionsuio.hotel.repository.ReservationRepository;
 import com.shionsuio.hotel.repository.RoomRepository;
 import org.slf4j.Logger;
@@ -11,6 +14,10 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 @Service
 public class ReservationService {
 
@@ -18,17 +25,34 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final RoomRepository roomRepository;
+    private final IdempotencyRepository idempotencyRepository;
 
     public ReservationService(ReservationRepository reservationRepository,
-                              RoomRepository roomRepository) {
+                              RoomRepository roomRepository,
+                              IdempotencyRepository idempotencyRepository) {
         this.reservationRepository = reservationRepository;
         this.roomRepository = roomRepository;
+        this.idempotencyRepository = idempotencyRepository;
     }
 
 
     //ロック処理
     @Transactional
-    public Long create(CreateReservationRequest request) {
+    public Long create(CreateReservationRequest request, String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new IdempotencyConflictException("Idempotency-Keyは必須です");
+        }
+
+        String requestHash = hashRequest(request);
+        IdempotencyRecord existing = idempotencyRepository.findByKey(idempotencyKey);
+        if (existing != null) {
+            return resolveExisting(existing, requestHash);
+        }
+
+        if (idempotencyRepository.insertIfAbsent(idempotencyKey, requestHash) == 0) {
+            existing = idempotencyRepository.findByKey(idempotencyKey);
+            return resolveExisting(existing, requestHash);
+        }
 
         try {
             roomRepository.findByIdForUpdate(request.roomId());
@@ -54,10 +78,36 @@ public class ReservationService {
                 request.checkInDate(),
                 request.checkOutDate()
         );
+        idempotencyRepository.attachReservation(idempotencyKey, reservationId);
 
         log.info("予約を作成しました reservationId={} roomId={}",
                 reservationId, request.roomId());
         return reservationId;
+    }
+
+    private Long resolveExisting(IdempotencyRecord existing, String requestHash) {
+        if (existing == null || !existing.requestHash().equals(requestHash)) {
+            throw new IdempotencyConflictException("同じIdempotency-Keyで異なる内容は送信できません");
+        }
+        if (existing.reservationId() == null) {
+            throw new IdempotencyConflictException("同じIdempotency-Keyの処理が実行中です");
+        }
+        return existing.reservationId();
+    }
+
+    private String hashRequest(CreateReservationRequest request) {
+        String value = request.roomId() + "|" + request.checkInDate() + "|" + request.checkOutDate();
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : digest) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("リクエストハッシュを作成できません", exception);
+        }
     }
 
 

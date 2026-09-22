@@ -15,3 +15,11 @@ create table  reservations (
     check ( check_in_date < check_out_date ),
     check ( status in ('CONFIRMED', 'CANCELED') )
 );
+
+create table idempotency_keys (
+    idempotency_key varchar(255) primary key,
+    request_hash varchar(64) not null,
+    reservation_id bigint,
+    created_at timestamp with time zone not null default current_timestamp,
+    foreign key (reservation_id) references reservations(id)
+);

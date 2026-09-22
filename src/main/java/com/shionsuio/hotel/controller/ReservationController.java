@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -26,9 +27,10 @@ public class ReservationController {
 
     @PostMapping
     public CreateReservationResponse create(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody CreateReservationRequest request
     ) {
-        Long reservationId = reservationService.create(request);
+        Long reservationId = reservationService.create(request, idempotencyKey);
         return  new CreateReservationResponse(reservationId);
     }
 }

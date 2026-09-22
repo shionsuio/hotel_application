@@ -30,4 +30,15 @@ public class ApiExceptionHandler {
                         "指定された部屋が見つかりません"
                 ));
     }
+
+    @ExceptionHandler(IdempotencyConflictException.class)
+    public ResponseEntity<ApiErrorResponse> handleIdempotencyConflict(
+            IdempotencyConflictException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiErrorResponse(
+                        "IDEMPOTENCY_CONFLICT",
+                        exception.getMessage()
+                ));
+    }
 }
