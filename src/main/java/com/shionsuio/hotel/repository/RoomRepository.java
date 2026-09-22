@@ -14,4 +14,8 @@ public interface RoomRepository {
             LocalDate checkIn,
             LocalDate checkOut
     );
+
+    Room findByIdForUpdate(Long roomId);
+
+
 }

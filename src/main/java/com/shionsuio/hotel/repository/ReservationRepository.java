@@ -1,5 +1,4 @@
 package com.shionsuio.hotel.repository;
-import com.shionsuio.hotel.repository.JdbcReservationRepository;
 
 import java.time.LocalDate;
 

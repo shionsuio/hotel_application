@@ -16,7 +16,6 @@ public record CreateReservationRequest(
         @NotNull(message = "チェックアウト日は必須です")
         LocalDate checkOutDate
 ) {
-    // TODO: 必須項目・roomIdの正数・チェックイン < チェックアウト・過去日・最大宿泊期間を検証する。
     @AssertTrue(message = "チェックアウト日はチェックイン日より前にしてください")
     public boolean isValidPeriod() {
         if(checkInDate == null || checkOutDate == null) {

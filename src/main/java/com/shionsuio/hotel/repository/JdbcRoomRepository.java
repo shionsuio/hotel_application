@@ -47,6 +47,26 @@ public class JdbcRoomRepository implements RoomRepository {
                 Date.valueOf(checkOut),
                 Date.valueOf(checkIn)
         );
+
+    }
+
+    @Override
+    public Room findByIdForUpdate(Long roomId) {
+        String sql = """
+              select id, room_number, price from rooms where id = ? for update;
+              """;
+
+        return jdbcTemplate.queryForObject(
+                sql,
+                (rs, rowNum) -> new Room(
+                        rs.getLong("id"),
+                        rs.getString("room_number"),
+                        rs.getInt("price")
+                ),
+                roomId
+        );
+
+
     }
 
 }
