@@ -45,6 +45,15 @@ public class JdbcReservationRepository implements ReservationRepository {
         }
 
         return key.longValue();
+    }
 
+    @Override
+    public int cancel(Long reservationId) {
+        String sql = """
+                update reservations
+                set status = 'CANCELED'
+                where id = ?;
+                """;
+        return jdbcTemplate.update(sql, reservationId);
     }
 }
