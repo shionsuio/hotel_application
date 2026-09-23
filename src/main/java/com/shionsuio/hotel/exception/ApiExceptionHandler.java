@@ -44,6 +44,17 @@ public class ApiExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(ReservationNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleReservationNotFound(
+            ReservationNotFoundException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiErrorResponse(
+                        "RESERVATION_NOT_FOUND",
+                        "指定された予約が見つかりません"
+                ));
+    }
+
     @ExceptionHandler(IdempotencyConflictException.class)
     public ResponseEntity<ApiErrorResponse> handleIdempotencyConflict(
             @NonNull IdempotencyConflictException exception

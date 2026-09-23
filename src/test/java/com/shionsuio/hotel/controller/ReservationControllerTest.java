@@ -18,6 +18,7 @@ import java.util.HexFormat;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -257,6 +258,41 @@ public class ReservationControllerTest {
                                 """)
         ).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("IDEMPOTENCY_CONFLICT"));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("存在する予約をキャンセルすると204を返す")
+    void cancelsReservation() throws Exception {
+        Long reservationId = jdbcTemplate.queryForObject("""
+                INSERT INTO reservations
+                    (room_id, check_in_date, check_out_date, status)
+                VALUES (1, DATE '2099-06-10', DATE '2099-06-12', 'CONFIRMED')
+                RETURNING id
+                """, Long.class);
+
+        mockMvc.perform(
+                delete("/reservations/{reservationId}", reservationId)
+                        .with(csrf())
+        ).andExpect(status().isNoContent());
+
+        String reservationStatus = jdbcTemplate.queryForObject("""
+                SELECT status
+                FROM reservations
+                WHERE id = ?
+                """, String.class, reservationId);
+        assertEquals("CANCELED", reservationStatus);
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("存在しない予約をキャンセルすると404を返す")
+    void returnsNotFoundWhenCancelingMissingReservation() throws Exception {
+        mockMvc.perform(
+                delete("/reservations/{reservationId}", 999999L)
+                        .with(csrf())
+        ).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RESERVATION_NOT_FOUND"));
     }
 
 

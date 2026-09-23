@@ -2,6 +2,7 @@ package com.shionsuio.hotel.service;
 
 import com.shionsuio.hotel.controller.CreateReservationRequest;
 import com.shionsuio.hotel.exception.RoomNotFoundException;
+import com.shionsuio.hotel.exception.ReservationNotFoundException;
 import com.shionsuio.hotel.exception.IdempotencyConflictException;
 import com.shionsuio.hotel.exception.ReservationConflictException;
 import com.shionsuio.hotel.domain.IdempotencyRecord;
@@ -83,6 +84,16 @@ public class ReservationService {
         log.info("予約を作成しました reservationId={} roomId={}",
                 reservationId, request.roomId());
         return reservationId;
+    }
+
+    @Transactional
+    public void cancel(Long reservationId) {
+        int updatedRows = reservationRepository.cancel(reservationId);
+        if (updatedRows == 0) {
+            throw new ReservationNotFoundException(reservationId);
+        }
+
+        log.info("予約をキャンセルしました reservationId={}", reservationId);
     }
 
     private Long resolveExisting(IdempotencyRecord existing, String requestHash) {
