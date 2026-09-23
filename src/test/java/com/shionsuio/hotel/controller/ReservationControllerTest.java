@@ -15,6 +15,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -39,6 +40,13 @@ public class ReservationControllerTest {
         jdbcTemplate.update("""
                 DELETE FROM idempotency_keys
                 WHERE idempotency_key LIKE 'reservation-%'
+                   OR reservation_id IN (
+                       SELECT id
+                       FROM reservations
+                       WHERE room_id = 1
+                         AND check_in_date >= DATE '2099-01-01'
+                         AND check_out_date >= DATE '2099-01-01'
+                   )
                 """);
         jdbcTemplate.update("""
                 DELETE FROM reservations
@@ -230,30 +238,32 @@ public class ReservationControllerTest {
     @WithMockUser
     @DisplayName("同じキーで内容が違えば409を返す")
     void rejectsRetryWithDifferentRequest() throws Exception {
+        String key = "reservation-retry-different-" + UUID.randomUUID();
+
         mockMvc.perform(
                 post("/reservations")
-                        .header("Idempotency-Key", "reservation-retry-2")
+                        .header("Idempotency-Key", key)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "roomId": 1,
-                                  "checkInDate": "2099-09-10",
-                                  "checkOutDate": "2099-09-12"
+                                  "checkInDate": "2199-09-10",
+                                  "checkOutDate": "2199-09-12"
                                 }
                                 """)
         ).andExpect(status().isOk());
 
         mockMvc.perform(
                 post("/reservations")
-                        .header("Idempotency-Key", "reservation-retry-2")
+                        .header("Idempotency-Key", key)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "roomId": 1,
-                                  "checkInDate": "2099-09-11",
-                                  "checkOutDate": "2099-09-13"
+                                  "checkInDate": "2199-09-11",
+                                  "checkOutDate": "2199-09-13"
                                 }
                                 """)
         ).andExpect(status().isConflict())
