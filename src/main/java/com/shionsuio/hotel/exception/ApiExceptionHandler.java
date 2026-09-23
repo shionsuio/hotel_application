@@ -1,13 +1,26 @@
 package com.shionsuio.hotel.exception;
 
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiErrorResponse> handleValidation(
+            MethodArgumentNotValidException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiErrorResponse(
+                        "VALIDATION_ERROR",
+                        "入力値が不正です"
+                ));
+    }
 
     @ExceptionHandler(ReservationConflictException.class)
     public ResponseEntity<ApiErrorResponse> handleReservationConflict(
@@ -33,7 +46,7 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(IdempotencyConflictException.class)
     public ResponseEntity<ApiErrorResponse> handleIdempotencyConflict(
-            IdempotencyConflictException exception
+            @NonNull IdempotencyConflictException exception
     ) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ApiErrorResponse(

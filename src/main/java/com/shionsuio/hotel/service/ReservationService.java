@@ -64,7 +64,7 @@ public class ReservationService {
 
         boolean roomIsAvailable = roomRepository.findAvailableRoom(request.checkInDate(),request.checkOutDate())
                 .stream().anyMatch(
-                        room -> room.Id().equals(request.roomId())
+                        room -> room.id().equals(request.roomId())
                 );
 
         if (!roomIsAvailable) {
@@ -95,9 +95,14 @@ public class ReservationService {
         return existing.reservationId();
     }
 
+
+    //冪等性確保のためのハッシュ関数
     private String hashRequest(CreateReservationRequest request) {
+
+        //ここの入力が同じものならハッシュ値が同じになります
         String value = request.roomId() + "|" + request.checkInDate() + "|" + request.checkOutDate();
         try {
+            //扱いやすいように１６進数に変換している
             byte[] digest = MessageDigest.getInstance("SHA-256")
                     .digest(value.getBytes(StandardCharsets.UTF_8));
             StringBuilder hex = new StringBuilder();

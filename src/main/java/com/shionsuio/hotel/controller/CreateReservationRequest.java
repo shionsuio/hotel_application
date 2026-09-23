@@ -16,7 +16,7 @@ public record CreateReservationRequest(
         @NotNull(message = "チェックアウト日は必須です")
         LocalDate checkOutDate
 ) {
-    @AssertTrue(message = "チェックアウト日はチェックイン日より前にしてください")
+    @AssertTrue(message = "チェックアウト日はチェックイン日より後にしてください")
     public boolean isValidPeriod() {
         if(checkInDate == null || checkOutDate == null) {
             return true;

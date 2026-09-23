@@ -12,11 +12,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -61,6 +66,32 @@ public class ReservationControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reservationId").isNumber());
+    }
+
+    @Test
+    @DisplayName("未認証なら予約APIは401を返す")
+    void rejectsUnauthenticatedRequest() throws Exception {
+        mockMvc.perform(
+                post("/reservations")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}")
+        ).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("入力値が不正なら400と共通エラー形式を返す")
+    void returnsBadRequestWhenRequestIsInvalid() throws Exception {
+        mockMvc.perform(
+                post("/reservations")
+                        .header("Idempotency-Key", "reservation-invalid-1")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}")
+        ).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("入力値が不正です"));
     }
 
     @Test
@@ -140,6 +171,58 @@ public class ReservationControllerTest {
                         .content(request)
         ).andExpect(status().isOk())
                 .andExpect(content().json(first.getResponse().getContentAsString()));
+
+        Integer idempotencyRows = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM idempotency_keys
+                WHERE idempotency_key = ?
+                """, Integer.class, "reservation-retry-1");
+        Integer reservationRows = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM reservations
+                WHERE room_id = 1
+                  AND check_in_date = DATE '2099-10-10'
+                  AND check_out_date = DATE '2099-10-12'
+                """, Integer.class);
+
+        assertEquals(1, idempotencyRows);
+        assertEquals(1, reservationRows);
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("冪等性キーとリクエストハッシュをDBに保存する")
+    void storesIdempotencyKeyAndRequestHash() throws Exception {
+        String key = "reservation-hash-1";
+        String request = """
+                {
+                  "roomId": 1,
+                  "checkInDate": "2099-08-10",
+                  "checkOutDate": "2099-08-12"
+                }
+                """;
+
+        mockMvc.perform(
+                post("/reservations")
+                        .header("Idempotency-Key", key)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request)
+        ).andExpect(status().isOk());
+
+        String requestHash = jdbcTemplate.queryForObject("""
+                SELECT request_hash
+                FROM idempotency_keys
+                WHERE idempotency_key = ?
+                """, String.class, key);
+
+        String expectedHash = HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(
+                        "1|2099-08-10|2099-08-12".getBytes(StandardCharsets.UTF_8)
+                )
+        );
+
+        assertEquals(expectedHash, requestHash);
     }
 
     @Test

@@ -31,7 +31,7 @@ public class SearchRoomService {
         );
         return rooms.stream()
                 .map(room -> new SearchRoomsResponse(
-                        room.Id(),
+                        room.id(),
                         room.roomNumber(),
                         room.price()
                 )).toList();
